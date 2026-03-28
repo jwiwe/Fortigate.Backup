@@ -32,18 +32,35 @@ namespace Fortigate.Backup.Core
 
         public static string Decrypt(string combinedBase64)
         {
-            byte[] combined = Convert.FromBase64String(combinedBase64);
-            using var aes = new AesGcm(Key, 16);
+            if (string.IsNullOrWhiteSpace(combinedBase64))
+                return "[No data]";
+            try
+            {
+                byte[] combined = Convert.FromBase64String(combinedBase64);
+                using var aes = new AesGcm(Key, 16);
 
-            // Pak pakken ud igen
-            byte[] nonce = combined[..12];
-            byte[] tag = combined[12..28];
-            byte[] ciphertext = combined[28..];
-            byte[] decryptedBytes = new byte[ciphertext.Length];
+                // Pak pakken ud igen
+                byte[] nonce = combined[..12];
+                byte[] tag = combined[12..28];
+                byte[] ciphertext = combined[28..];
+                byte[] decryptedBytes = new byte[ciphertext.Length];
 
-            aes.Decrypt(nonce, ciphertext, tag, decryptedBytes);
+                aes.Decrypt(nonce, ciphertext, tag, decryptedBytes);
 
-            return Encoding.UTF8.GetString(decryptedBytes);
+                return Encoding.UTF8.GetString(decryptedBytes);
+            }
+            catch (FormatException)
+            {
+                return "[Error: Data is not in correct Base64 format]";
+            }
+            catch (CryptographicException)
+            {
+                return "[Error: Unable to decrypt. Incorrect key or corrupt data]";
+            }
+            catch (Exception ex)
+            {
+                return $"[Unexpected error: {ex.Message}]";
+            }
         }
     }
 }
