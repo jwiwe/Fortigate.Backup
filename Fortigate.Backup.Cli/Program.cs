@@ -19,7 +19,6 @@ namespace Fortigate.Backup.Cli
                 var random = new Random();
                 string key = new string(Enumerable.Repeat(chars, 32)
                     .Select(s => s[random.Next(s.Length)]).ToArray());
-                Console.WriteLine(key);
                 ConfigHelper.SetSetting("Fortigate_Backup", "SecretKey", key);
             }
             await Parser.Default.ParseArguments<AddOptions, ListOptions, EditOptions, DeleteOptions, BackupOptions>(args)
@@ -100,6 +99,11 @@ namespace Fortigate.Backup.Cli
                 foreach (var item in gates)
                 {
                     createText = await BackupGate.Backup(item);
+                    if (createText == null)
+                    {
+                        Console.WriteLine($"Unable to backup the device with ID {item.Id}");
+                        continue;
+                    }
                     File.WriteAllText($"Backups\\{item.Name}-{DateTime.Now.ToString("dd-MM-yyyy")}.txt", createText);
                     Console.WriteLine($"Backuped device with ID: {item.Id}");
                 }
@@ -112,6 +116,11 @@ namespace Fortigate.Backup.Cli
                 return 1;
             }
             createText = await BackupGate.Backup(gate);
+            if (createText == null)
+            {
+                Console.WriteLine($"Unable to backup the device with ID {gate.Id}");
+                return 1;
+            }
             File.WriteAllText($"Backups\\{gate.Name}-{DateTime.Now.ToString("dd-MM-yyyy")}.txt", createText);
             return 0;
         }
