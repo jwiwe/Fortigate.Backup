@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Fortigate.Backup.Cli/Fortigate.Backup.Cli.csproj" />
+  <Project Path="Fortigate.Backup.Core/Fortigate.Backup.Core.csproj" />
+  <Project Path="Fortigate.Backup.Gui/Fortigate.Backup.Gui.csproj" />
+</Solution>
