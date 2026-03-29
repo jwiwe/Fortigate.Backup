@@ -36,23 +36,15 @@
             return false;
         }
 
-        public static string EnsureKeyExists()
+        public static bool EnsureKeyExists()
         {
             string? key = GetSecretKey();
 
             if (string.IsNullOrEmpty(key))
             {
-                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#%&/()=?";
-                var random = new Random();
-                string newKey = new string(Enumerable.Range(1, 32).Select(_ => chars[random.Next(chars.Length)]).ToArray());
-
-                // Gem den permanent i Windows
-                Environment.SetEnvironmentVariable("Fortigate_Backup__SecretKey", newKey, EnvironmentVariableTarget.User);
-                // Gør den tilgængelig for den NUVÆRENDE kørsel med det samme
-                Environment.SetEnvironmentVariable("Fortigate_Backup__SecretKey", newKey, EnvironmentVariableTarget.Process);
-                return newKey;
+                return false;
             }
-            return key;
+            return true;
         }
 
         public static string GetSecretKey()

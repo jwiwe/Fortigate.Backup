@@ -13,6 +13,39 @@ namespace Fortigate.Backup.Cli
             SqliteDataAccess.InitializeDatabase();
             IConfiguration configuration = ConfigHelper.GetConfig();
             ValidateKey.EnsureKeyExists();
+            if(!ValidateKey.EnsureKeyExists())
+            {
+                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#%&/()=?";
+                var random = new Random();
+                string newKey = new string(Enumerable.Range(1, 32).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("!!! SECURITY ERROR !!!");
+                Console.WriteLine("No encryption key (environment variable) found.");
+                Console.WriteLine("Please set the environment variable 'Fortigate_Backup__SecretKey' to a secure 32 byte string value before running the program.");
+                Console.WriteLine("The program is being terminated to protect your data.");
+                Console.WriteLine("");
+                Console.Write($"Suggested key: ");
+                Console.ForegroundColor= ConsoleColor.Blue;
+                Console.WriteLine($"{newKey}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("");
+                Console.WriteLine("Windows:");
+                Console.Write($"setx Fortigate_Backup__SecretKey \"");
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write($"{newKey}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\"");
+                Console.WriteLine("RefreshEnv");
+                Console.WriteLine("");
+                Console.WriteLine("Linux/macOS:");
+                Console.Write($"export Fortigate_Backup__SecretKey=\"");
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write($"{newKey}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\"");
+                Console.ResetColor();
+                return; // Stop programmet
+            }
             if (!ValidateKey.EnsureKeyIsValid())
             {
                 Console.ForegroundColor = ConsoleColor.Red;
