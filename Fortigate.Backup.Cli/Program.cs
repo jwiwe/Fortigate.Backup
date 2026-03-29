@@ -40,6 +40,7 @@ namespace Fortigate.Backup.Cli
             {
                 Name = opts.Name,
                 IpAddress = opts.IpAddress,
+                Port = opts.Port,
                 Apikey = CryptoService.Encrypt(opts.Apikey)
             };
 
@@ -56,7 +57,7 @@ namespace Fortigate.Backup.Cli
             var gates = SqliteDataAccess.LoadGates();
             foreach (var gate in gates)
             {
-                Console.WriteLine($"{gate.Id}\t{gate.Name}\t{gate.IpAddress}");
+                Console.WriteLine($"{gate.Id}\t{gate.Name}\t{gate.IpAddress}\t{gate.Port}");
             }
             return Task.FromResult(0);
         }
@@ -72,6 +73,7 @@ namespace Fortigate.Backup.Cli
             }
             if (opts.Name != null) gate.Name = opts.Name;
             if (opts.IpAddress != null) gate.IpAddress = opts.IpAddress;
+            if (opts.Port != null) gate.Port = opts.Port;
             if (opts.Apikey != null) gate.Apikey = CryptoService.Encrypt(opts.Apikey);
             SqliteDataAccess.UpdateGate(gate);
 

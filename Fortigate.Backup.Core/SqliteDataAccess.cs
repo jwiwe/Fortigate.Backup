@@ -14,7 +14,7 @@ namespace Fortigate.Backup.Core
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
                 cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS systemSettings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
-                cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS gates (id INTEGER NOT NULL UNIQUE, name TEXT NOT NULL, ipAddress TEXT NOT NULL, apikey TEXT NOT NULL, PRIMARY KEY( id AUTOINCREMENT));");
+                cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS gates (id INTEGER NOT NULL UNIQUE, name TEXT NOT NULL, ipAddress TEXT NOT NULL, port INTEGER NOT NULL, apikey TEXT NOT NULL, PRIMARY KEY( id AUTOINCREMENT));");
             }
         }
 
@@ -23,7 +23,7 @@ namespace Fortigate.Backup.Core
             var connectionString = LoadConnectionString();
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
-                var output = cnn.Query<GateModel>("SELECT id, name, ipAddress, apikey FROM gates", new DynamicParameters());
+                var output = cnn.Query<GateModel>("SELECT id, name, ipAddress, port, apikey FROM gates", new DynamicParameters());
                 return output.ToList();
             }
         }
@@ -33,7 +33,7 @@ namespace Fortigate.Backup.Core
             var connectionString = LoadConnectionString();
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
-                var output = cnn.QuerySingleOrDefault<GateModel>("SELECT id, name, ipAddress, apikey FROM gates WHERE id = @Id", new { Id = id });
+                var output = cnn.QuerySingleOrDefault<GateModel>("SELECT id, name, ipAddress, port, apikey FROM gates WHERE id = @Id", new { Id = id });
                 return output;
             }
         }
@@ -43,7 +43,7 @@ namespace Fortigate.Backup.Core
             var connectionString = LoadConnectionString();
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
-                cnn.Execute("INSERT INTO gates (name, ipAddress, apikey) VALUES (@Name, @IpAddress, @Apikey)", gate);
+                cnn.Execute("INSERT INTO gates (name, ipAddress, port, apikey) VALUES (@Name, @IpAddress, @Port, @Apikey)", gate);
             }
         }
 
@@ -52,7 +52,7 @@ namespace Fortigate.Backup.Core
             var connectionString = LoadConnectionString();
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
-                cnn.Execute("UPDATE gates SET name = @Name, ipAddress = @IpAddress, apikey = @Apikey WHERE id = @Id", gate);
+                cnn.Execute("UPDATE gates SET name = @Name, ipAddress = @IpAddress, port = @Port, apikey = @Apikey WHERE id = @Id", gate);
             }
         }
 

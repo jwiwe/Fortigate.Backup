@@ -13,6 +13,8 @@ namespace Fortigate.Backup.Cli
 
             [Option('i', "ip", Required = true)]
             public string IpAddress { get; set; }
+            [Option('p', "port", Required = false)]
+            public int Port { get; set; } = 443;
             [Option('k', "apikey", Required = true)]
             public string Apikey { get; set; }
         }
@@ -29,6 +31,8 @@ namespace Fortigate.Backup.Cli
 
             [Option('i', "ip", Required = false)]
             public string? IpAddress { get; set; }
+            [Option('p', "port", Required = false)]
+            public int? Port { get; set; }
 
             [Option('k', "apikey", Required = false)]
             public string? Apikey { get; set; }
