@@ -2,6 +2,7 @@
 using Fortigate.Backup.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
+using Spectre.Console.Extensions;
 using File = System.IO.File;
 
 namespace Fortigate.Backup.Cli
@@ -29,6 +30,7 @@ namespace Fortigate.Backup.Cli
                 AnsiConsole.MarkupLine("[bold]Linux/macOS:[/]");
                 AnsiConsole.MarkupLine($"export Fortigate_Backup__SecretKey=\"[blue]{newKey}[/]\"\n" +
                     $"RefreshEnv\n");
+                Console.ReadKey();
                 return; // Stop programmet
             }
             if (!ValidateKey.EnsureKeyIsValid())
@@ -36,6 +38,7 @@ namespace Fortigate.Backup.Cli
                 AnsiConsole.MarkupLine("[red bold]!!! SECURITY ERROR !!![/]");
                 AnsiConsole.MarkupLine("[red]Your encryption key (environment variable) does not match the database.\n" +
                     "The program is being terminated to protect your data.[/]\n");
+                Console.ReadKey();
                 return; // Stop programmet
             }
 
@@ -44,6 +47,9 @@ namespace Fortigate.Backup.Cli
                 string command = args[0].ToLower();
                 switch (command)
                 {
+                    case "backup":
+                        await HandleBackupCommand();
+                        return;
                     case "backupall":
                         await HandleBackupAllCommand();
                         return;
@@ -98,6 +104,7 @@ namespace Fortigate.Backup.Cli
                         break;
                     case "backup":
                         await HandleBackupCommand();
+                        Console.ReadKey();
                         break;
                     case "backupAll":
                         await HandleBackupAllCommand();
@@ -111,6 +118,8 @@ namespace Fortigate.Backup.Cli
 
         private static Task<int> HandleAddCommand()
         {
+            AnsiConsole.MarkupLine("[bold]Add a new Fortigate:[/]");
+
             string name = AnsiConsole.Prompt(
                 new TextPrompt<string>("Name:")
             );
@@ -242,27 +251,34 @@ namespace Fortigate.Backup.Cli
 
             var selected = AnsiConsole.Prompt(
                 new MultiSelectionPrompt<int>()
-                    .Title("title")
+                    .Title("Select Fortigates to backup:")
                     .UseConverter(key => list[key])
                     .AddChoices(list.Keys)
                     .PageSize(24));
+                
 
             foreach (var item in selected)
             {
+                string createText = null;
                 var gate = SqliteDataAccess.LoadGateById(item);
-                string createText = await BackupGate.Backup(gate);
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Binary)
+                    .StartAsync($"Backing up device: {gate.Name} ({gate.IpAddress})...", async ctx =>
+                    {
+                        createText = await BackupGate.Backup(gate);
+                    }
+                );
                 if (createText == null)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Unable to backup the device with ID {gate.Id}");
-                    Console.ResetColor();
+                    AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
                     continue;
                 }
-                File.WriteAllText($"Backups\\{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.txt", createText);
-                Console.WriteLine($"Backuped the device: {gate.Name} ({gate.IpAddress})");
+                var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
+                File.WriteAllText(path, createText);
+
+                AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
             }
             AnsiConsole.MarkupLine("\nAll selected devices have been processed.");
-            Console.ReadKey();
             return 0;
         }
 
@@ -271,16 +287,22 @@ namespace Fortigate.Backup.Cli
             var gates = SqliteDataAccess.LoadGates();
             foreach (var gate in gates)
             {
-                string createText = await BackupGate.Backup(gate);
+                string createText = null;
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Binary)
+                    .StartAsync($"Backing up device: {gate.Name} ({gate.IpAddress})...", async ctx =>
+                    {
+                        createText = await BackupGate.Backup(gate);
+                    }
+                );
                 if (createText == null)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Unable to backup the device with ID {gate.Id}");
-                    Console.ResetColor();
+                    AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
                     continue;
                 }
-                File.WriteAllText($"Backups\\{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.txt", createText);
-                Console.WriteLine($"Backuped the device: {gate.Name} ({gate.IpAddress})");
+                var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
+                File.WriteAllText(path, createText);
+                AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
             }
             AnsiConsole.MarkupLine("\nAll devices have been processed.");
             return 0;
