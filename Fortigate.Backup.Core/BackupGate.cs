@@ -1,7 +1,4 @@
 ﻿using Fortigate.Backup.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fortigate.Backup.Core
 {
