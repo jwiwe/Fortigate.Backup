@@ -8,6 +8,16 @@ namespace Fortigate.Backup.Core
 {
     public class SqliteDataAccess
     {
+        public static void InitializeDatabase()
+        {
+            var connectionString = LoadConnectionString();
+            using (IDbConnection cnn = new SQLiteConnection(connectionString))
+            {
+                cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS systemSettings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+                cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS gates (id INTEGER NOT NULL UNIQUE, name TEXT NOT NULL, ipAddress TEXT NOT NULL, apikey TEXT NOT NULL, PRIMARY KEY( id AUTOINCREMENT));");
+            }
+        }
+
         public static List<GateModel> LoadGates()
         {
             var connectionString = LoadConnectionString();
@@ -52,6 +62,30 @@ namespace Fortigate.Backup.Core
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
             {
                 cnn.Execute("DELETE FROM gates WHERE id = @Id", new { Id = id });
+            }
+        }
+
+        public static string? LoadSetting(string key)
+        {
+            var connectionString = LoadConnectionString();
+            using (IDbConnection cnn = new SQLiteConnection(connectionString))
+            {
+                return cnn.QueryFirstOrDefault<string>(
+                    "SELECT value FROM systemSettings WHERE key = @Key",
+                    new { Key = key });
+            }
+        }
+
+        public static void SaveSetting(string key, string value)
+        {
+            var connectionString = LoadConnectionString();
+            using (IDbConnection cnn = new SQLiteConnection(connectionString))
+            {
+                cnn.Execute(@"
+                    INSERT INTO systemSettings (key, value) 
+                    VALUES (@Key, @Value) 
+                    ON CONFLICT(Key) DO UPDATE SET value = @Value",
+                    new { Key = key, Value = value });
             }
         }
 

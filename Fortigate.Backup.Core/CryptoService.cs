@@ -6,8 +6,7 @@ namespace Fortigate.Backup.Core
 {
     public static class CryptoService
     {
-        private static readonly IConfiguration configuration = ConfigHelper.GetConfig();
-        private static readonly string secretKeyFromConfig = configuration.GetSection("Fortigate_Backup")["SecretKey"];
+        private static readonly string secretKeyFromConfig = ValidateKey.EnsureKeyExists();
         private static readonly byte[] Key = Encoding.UTF8.GetBytes($"{secretKeyFromConfig}"); // Skal være 32 bytes
 
         public static string Encrypt(string plainText)

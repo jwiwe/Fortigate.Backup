@@ -2,8 +2,6 @@
 using Fortigate.Backup.Core;
 using Fortigate.Backup.Core.Models;
 using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
-using System.Text;
 using static Fortigate.Backup.Cli.CommandLineOptions;
 
 namespace Fortigate.Backup.Cli
@@ -12,14 +10,17 @@ namespace Fortigate.Backup.Cli
     {
         static async Task Main(string[] args)
         {
+            SqliteDataAccess.InitializeDatabase();
             IConfiguration configuration = ConfigHelper.GetConfig();
-            if (configuration.GetSection("Fortigate_Backup")["SecretKey"] is null)
+            ValidateKey.EnsureKeyExists();
+            if (!ValidateKey.EnsureKeyIsValid())
             {
-                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#%&/()=?";
-                var random = new Random();
-                string key = new string(Enumerable.Repeat(chars, 32)
-                    .Select(s => s[random.Next(s.Length)]).ToArray());
-                ConfigHelper.SetSetting("Fortigate_Backup", "SecretKey", key);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("!!! SECURITY ERROR !!!");
+                Console.WriteLine("Your encryption key (environment variable) does not match the database.");
+                Console.WriteLine("The program is being terminated to protect your data.");
+                Console.ResetColor();
+                return; // Stop programmet
             }
             await Parser.Default.ParseArguments<AddOptions, ListOptions, EditOptions, DeleteOptions, BackupOptions>(args)
                 .MapResult(
@@ -101,10 +102,12 @@ namespace Fortigate.Backup.Cli
                     createText = await BackupGate.Backup(item);
                     if (createText == null)
                     {
+                        Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine($"Unable to backup the device with ID {item.Id}");
+                        Console.ResetColor();
                         continue;
                     }
-                    File.WriteAllText($"Backups\\{item.Name}-{DateTime.Now.ToString("dd-MM-yyyy")}.txt", createText);
+                    File.WriteAllText($"Backups\\{item.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.txt", createText);
                     Console.WriteLine($"Backuped device with ID: {item.Id}");
                 }
                 return 0;
@@ -118,10 +121,12 @@ namespace Fortigate.Backup.Cli
             createText = await BackupGate.Backup(gate);
             if (createText == null)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Unable to backup the device with ID {gate.Id}");
+                Console.ResetColor();
                 return 1;
             }
-            File.WriteAllText($"Backups\\{gate.Name}-{DateTime.Now.ToString("dd-MM-yyyy")}.txt", createText);
+            File.WriteAllText($"Backups\\{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.txt", createText);
             return 0;
         }
     }
