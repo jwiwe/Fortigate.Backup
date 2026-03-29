@@ -21,13 +21,13 @@ namespace Fortigate.Backup.Cli
         [Verb("edit", HelpText = "Edit an existing Fortigate in the database")]
         public class EditOptions
         {
-            [Option('i', "id", Required = true)]
+            [Option("id", Required = true)]
             public int Id { get; set; }
 
             [Option('n', "name", Required = false)]
             public string? Name { get; set; }
 
-            [Option('a', "ip", Required = false)]
+            [Option('i', "ip", Required = false)]
             public string? IpAddress { get; set; }
 
             [Option('k', "apikey", Required = false)]
@@ -44,7 +44,7 @@ namespace Fortigate.Backup.Cli
         [Verb("delete", HelpText = "Remove a Fortigate from the database.")]
         public class DeleteOptions
         {
-            [Option('i', "id", Required = false)]
+            [Option("id", Required = false)]
             public int Id { get; set; }
         }
 
@@ -52,7 +52,7 @@ namespace Fortigate.Backup.Cli
         [Verb("backup", HelpText = "Make a backup of a Fortigate or all Fortigates in the database.")]
         public class BackupOptions
         {
-            [Option('i', "id", Required = false)]
+            [Option("id", Required = false)]
             public int Id { get; set; }
         }
     }
