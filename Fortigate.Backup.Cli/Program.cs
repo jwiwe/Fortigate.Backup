@@ -14,35 +14,28 @@ namespace Fortigate.Backup.Cli
             Console.Clear();
             SqliteDataAccess.InitializeDatabase();
             IConfiguration configuration = ConfigHelper.GetConfig();
-            if (!ValidateKey.EnsureKeyExists())
+
+            if (args.Length > 0)
             {
-                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#%&/()=?";
-                var random = new Random();
-                string newKey = new string(Enumerable.Range(1, 32).Select(_ => chars[random.Next(chars.Length)]).ToArray());
-                AnsiConsole.MarkupLine("[red bold]!!! SECURITY ERROR !!![/]");
-                AnsiConsole.MarkupLine("[red]No encryption key (environment variable) found.\n" +
-                    "Please set the environment variable 'Fortigate_Backup__SecretKey' to a secure 32 byte string value before running the program.\n" +
-                    "The program is being terminated to protect your data.[/]\n");
-                AnsiConsole.MarkupLine($"Suggested key: [blue]{newKey}[/]\n");
-                AnsiConsole.MarkupLine("[bold]Windows:[/]");
-                AnsiConsole.MarkupLine($"setx Fortigate_Backup__SecretKey \"[blue]{newKey}[/]\"\n" +
-                    $"RefreshEnv\n");
-                AnsiConsole.MarkupLine("[bold]Linux/macOS:[/]");
-                AnsiConsole.MarkupLine($"export Fortigate_Backup__SecretKey=\"[blue]{newKey}[/]\"\n" +
-                    $"RefreshEnv\n");
-                Console.ReadKey();
-                return; // Stop programmet
+                string command = args[0].ToLower();
+                switch (command)
+                {
+                    case "import-key":
+                        await HandleImportKeyCommand();
+                        return;
+                }
             }
+
             if (!ValidateKey.EnsureKeyIsValid())
             {
                 AnsiConsole.MarkupLine("[red bold]!!! SECURITY ERROR !!![/]");
                 AnsiConsole.MarkupLine("[red]Your encryption key (environment variable) does not match the database.\n" +
                     "The program is being terminated to protect your data.[/]\n");
                 Console.ReadKey();
-                return; // Stop programmet
+                return;
             }
 
-            if(args.Length > 0)
+            if (args.Length > 0)
             {
                 string command = args[0].ToLower();
                 switch (command)
@@ -52,6 +45,9 @@ namespace Fortigate.Backup.Cli
                         return;
                     case "backupall":
                         await HandleBackupAllCommand();
+                        return;
+                    case "export-key":
+                        await HandleExportKeyCommand();
                         return;
                     default:
                         AnsiConsole.MarkupLine($"[red]Unknown command: {command}[/]");
@@ -70,7 +66,8 @@ namespace Fortigate.Backup.Cli
                 { "exit", "Exit the program" }
             };
 
-            do {
+            do
+            {
                 Console.Clear();
                 FigletText title = new FigletText("Fortigate Backup")
                 .Centered()
@@ -150,7 +147,6 @@ namespace Fortigate.Backup.Cli
 
         private static Task<int> HandleListCommand()
         {
-            // Implement your logic for the 'list' command here
             AnsiConsole.MarkupLine("[bold]All Fortigates:[/]");
             Table table = new Table();
             table.AddColumn("[bold]ID[/]");
@@ -172,7 +168,7 @@ namespace Fortigate.Backup.Cli
         {
             int id = ShowSelectionList("Select Fortigate to edit:");
 
-            if(id <= 0) return Task.FromResult(0);
+            if (id <= 0) return Task.FromResult(0);
 
             var gate = SqliteDataAccess.LoadGateById(id);
 
@@ -200,7 +196,7 @@ namespace Fortigate.Backup.Cli
                     .Secret()
                     .AllowEmpty()
             );
-            
+
             gate.Name = name;
             gate.IpAddress = ipAddress;
             gate.Port = port;
@@ -231,7 +227,7 @@ namespace Fortigate.Backup.Cli
                 .Title($"Are you sure you want to delete this device '{gate.Name} ({gate.IpAddress})'?")
                 .AddChoices(new[] { "No", "Yes" }));
 
-            if(selected == "Yes")
+            if (selected == "Yes")
             {
                 SqliteDataAccess.DeleteGate(gate.Id);
                 AnsiConsole.MarkupLine($"\nDevice deleted");
@@ -255,7 +251,7 @@ namespace Fortigate.Backup.Cli
                     .UseConverter(key => list[key])
                     .AddChoices(list.Keys)
                     .PageSize(24));
-                
+
 
             foreach (var item in selected)
             {
@@ -274,6 +270,7 @@ namespace Fortigate.Backup.Cli
                     continue;
                 }
                 var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, createText);
 
                 AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
@@ -301,6 +298,7 @@ namespace Fortigate.Backup.Cli
                     continue;
                 }
                 var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, createText);
                 AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
             }
@@ -327,6 +325,38 @@ namespace Fortigate.Backup.Cli
                     .PageSize(24));
 
             return selected;
+        }
+
+        private static Task HandleExportKeyCommand()
+        {
+            AnsiConsole.MarkupLine("[bold]Export Secret Kay:[/]");
+
+            string path = AnsiConsole.Prompt(
+                new TextPrompt<string>("File path:")
+            );
+            string password = AnsiConsole.Prompt(
+                new TextPrompt<string>("Password:")
+                    .Secret()
+            );
+
+            CryptoService.ExportKey(path, password);
+            AnsiConsole.MarkupLine($"Key exported to: [blue]{path}[/]");
+            return Task.CompletedTask;
+        }
+
+        private static Task HandleImportKeyCommand()
+        {
+            AnsiConsole.MarkupLine("[bold]Import Secret Kay:[/]");
+            string path = AnsiConsole.Prompt(
+                new TextPrompt<string>("File path:")
+            );
+            string password = AnsiConsole.Prompt(
+                new TextPrompt<string>("Password:")
+                    .Secret()
+            );
+            CryptoService.ImportKey(path, password);
+            AnsiConsole.MarkupLine($"Key imported from: [blue]{path}[/]");
+            return Task.CompletedTask;
         }
     }
 }
