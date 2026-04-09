@@ -8,6 +8,7 @@ namespace Fortigate.Backup.Core
 {
     public class SqliteDataAccess
     {
+        public static int DBVersion = 1;
         public static void InitializeDatabase()
         {
             var connectionString = LoadConnectionString();
@@ -15,6 +16,16 @@ namespace Fortigate.Backup.Core
             {
                 cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS systemSettings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
                 cnn.ExecuteAsync("CREATE TABLE IF NOT EXISTS gates (id INTEGER NOT NULL UNIQUE, name TEXT NOT NULL, ipAddress TEXT NOT NULL, port INTEGER NOT NULL, apikey TEXT NOT NULL, PRIMARY KEY( id AUTOINCREMENT));");
+                cnn.ExecuteAsync("INSERT OR IGNORE INTO systemSettings (key, value) VALUES ('DBVersion', @Version);", new { Version = DBVersion });
+                var dbVersion = cnn.QueryFirstOrDefault<int>("SELECT value FROM systemSettings WHERE key = 'DBVersion';");
+                if (dbVersion != DBVersion)
+                {
+                    switch (dbVersion)
+                    {
+                        default:
+                            break;
+                    }
+                }
             }
         }
 
