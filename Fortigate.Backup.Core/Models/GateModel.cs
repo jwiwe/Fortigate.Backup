@@ -7,5 +7,7 @@
         public string? IpAddress { get; set; }
         public int? Port { get; set; } = 443;
         public string? Apikey { get; set; }
+        public string? ConfVer { get; set; }
+        public string? BuildNo { get; set; }
     }
 }

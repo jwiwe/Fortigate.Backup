@@ -1,6 +1,7 @@
 ﻿using Fortigate.Backup.Core;
 using Fortigate.Backup.Core.Models;
 using Spectre.Console;
+using System.Text.RegularExpressions;
 
 namespace Fortigate.Backup.Cli
 {
@@ -157,17 +158,40 @@ namespace Fortigate.Backup.Cli
                     AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
                     continue;
                 }
-                var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, createText);
+                var path = Path.Combine("Backups", $"{gate.Name}", $"{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
 
-                AnsiConsole.MarkupLine($"111111 Backed up device: {gate.Name} ({gate.IpAddress})");
+                string pattern = @"#conf_file_ver=(?<version>\d+)\s+#buildno=(?<build>\d+)";
+                var match = Regex.Match(createText, pattern);
+
+                if (match.Success)
+                {
+                    if (match.Groups["version"].Value != gate.ConfVer || match.Groups["build"].Value != gate.BuildNo)
+                    {
+                        await SaveFileAsync(path, createText);
+                        gate.ConfVer = match.Groups["version"].Value;
+                        gate.BuildNo = match.Groups["build"].Value;
+                        SqliteDataAccess.UpdateGate(gate);
+                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.IpAddress}), skipping backup.[/]");
+                    }
+                }
+                else
+                {
+                    await SaveFileAsync(path, createText);
+                    gate.ConfVer = match.Groups["version"].Value;
+                    gate.BuildNo = match.Groups["build"].Value;
+                    SqliteDataAccess.UpdateGate(gate);
+                    AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
+                }
             }
             AnsiConsole.MarkupLine("\nAll selected devices have been processed.");
             return 0;
         }
 
-        public static async Task<int> HandleBackupAllCommand()
+        public static async Task<int> HandleBackupAllCommand(bool force = false)
         {
             var gates = SqliteDataAccess.LoadGates();
             foreach (var gate in gates)
@@ -185,13 +209,42 @@ namespace Fortigate.Backup.Cli
                     AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
                     continue;
                 }
-                var path = Path.Combine("Backups", $"{gate.Name}_{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, createText);
+                var path = Path.Combine("Backups", $"{gate.Name}", $"{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
+
+                string pattern = @"#conf_file_ver=(?<version>\d+)\s+#buildno=(?<build>\d+)";
+                var match = Regex.Match(createText, pattern);
+
+                if (match.Success)
+                {
+                    if (match.Groups["version"].Value != gate.ConfVer || match.Groups["build"].Value != gate.BuildNo || force) 
+                    {
+                        await SaveFileAsync(path, createText);
+                        gate.ConfVer = match.Groups["version"].Value;
+                        gate.BuildNo = match.Groups["build"].Value;
+                        SqliteDataAccess.UpdateGate(gate);
+                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.IpAddress}), skipping backup.[/]");
+                    }
+                }
+                else
+                {
+                    await SaveFileAsync(path, createText);
+                    gate.ConfVer = match.Groups["version"].Value;
+                    gate.BuildNo = match.Groups["build"].Value;
+                    SqliteDataAccess.UpdateGate(gate);
                 AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
             }
             AnsiConsole.MarkupLine("\nAll devices have been processed.");
             return 0;
+        }
+
+        public async static Task SaveFileAsync(string path, string content)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, content);
         }
 
         private static int ShowSelectionList(string title = "Select Fortigate:")
