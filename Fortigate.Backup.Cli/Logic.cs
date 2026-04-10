@@ -216,7 +216,7 @@ namespace Fortigate.Backup.Cli
 
                 if (match.Success)
                 {
-                    if (match.Groups["version"].Value != gate.ConfVer || match.Groups["build"].Value != gate.BuildNo || force) 
+                    if (match.Groups["version"].Value != gate.ConfVer || match.Groups["build"].Value != gate.BuildNo || force)
                     {
                         await SaveFileAsync(path, createText);
                         gate.ConfVer = match.Groups["version"].Value;
@@ -235,6 +235,7 @@ namespace Fortigate.Backup.Cli
                     gate.ConfVer = match.Groups["version"].Value;
                     gate.BuildNo = match.Groups["build"].Value;
                     SqliteDataAccess.UpdateGate(gate);
+                }
                 AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
             }
             AnsiConsole.MarkupLine("\nAll devices have been processed.");
