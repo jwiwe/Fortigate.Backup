@@ -11,6 +11,7 @@ It securely stores your device details (including API keys) using local encrypti
 - **Key Management:** Export and import encryption keys to safely move your configuration across systems or recover them.
 - **Manage Devices:** Add, list, edit, and delete multiple FortiGate devices from the internal database.
 - **Bulk or Single Backups:** Create configuration backups for all registered devices at once, or target specific firewalls.
+- **Email Notifications:** Optionally send an email report containing the results of the backup operation via SMTP.
 
 ## Requirements
 - [.NET 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) or newer
@@ -38,3 +39,23 @@ When you run the application with no arguments, it starts in an interactive mode
 The application generates an encryption key upon first execution and stores it securely. This key ensures that your API keys saved in the local SQLite database cannot be accessed in plaintext.
 
 > **Important**: If you move the application to another machine, or reinstall your OS, you will lose access to the encrypted data unless you export your encryption key and import it on the new system using the `export-key` and `import-key` commands respectively.
+
+### Email Notifications
+
+Configure email notifications by modifying the `appsettings.json` file. Ensure `EnableEmailNotifications` is set to `true`:
+
+```json
+{
+  "EmailSettings": {
+    "EnableEmailNotifications": false,
+    "SmtpServer": "domain.com",
+    "Port": 587,
+    "Encryption": "Auto",
+    "SenderName": "Fortigate Backup",
+    "SenderEmail": "backup@domain.com",
+    "ReceiverEmail": "admin@domain.com",
+    "Username": "backup@domain.com",
+    "Password": "YourPasswordHere"
+  }
+}
+```
