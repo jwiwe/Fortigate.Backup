@@ -1,6 +1,7 @@
 ﻿using Fortigate.Backup.Core;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Serilog;
 
 namespace Fortigate.Backup.Cli.Commands
 {
@@ -14,6 +15,7 @@ namespace Fortigate.Backup.Cli.Commands
 
             CryptoService.ExportKey(path, password);
             AnsiConsole.MarkupLine($"Key exported to: [blue]{path}[/]");
+            Log.Warning("Exported key to {Path}", path);
             return 0;
         }
     }

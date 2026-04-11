@@ -1,4 +1,5 @@
 ﻿using Fortigate.Backup.Core;
+using Serilog;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -14,6 +15,7 @@ namespace Fortigate.Backup.Cli.Commands
 
             CryptoService.ImportKey(path, password);
             AnsiConsole.MarkupLine($"Key imported from: [blue]{path}[/]");
+            Log.Warning("Imported key from {Path}", path);
             return 0;
         }
     }
