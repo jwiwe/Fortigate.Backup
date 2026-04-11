@@ -4,7 +4,7 @@ namespace Fortigate.Backup.Core
 {
     public class BackupGate
     {
-        public static async Task<string> Backup(GateModel gate)
+        public static async Task<string?> Backup(GateModel gate)
         {
             var handler = new HttpClientHandler
             {
@@ -13,7 +13,7 @@ namespace Fortigate.Backup.Core
 
             using (var http = new HttpClient(handler))
             {
-                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {CryptoService.Decrypt(gate.Apikey)}");
+                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {CryptoService.Decrypt(gate.Apikey ?? string.Empty)}");
 
                 try
                 {

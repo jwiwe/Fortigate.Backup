@@ -13,7 +13,7 @@ namespace Fortigate.Backup.Cli.Commands
             int id = settings.Id ?? 0;
             if (id > 0)
             {
-                string createText = null;
+                string? createText = null;
                 var gate = SqliteDataAccess.LoadGateById(id);
                 if (gate == null)
                 {
@@ -34,13 +34,13 @@ namespace Fortigate.Backup.Cli.Commands
                 var path = Path.Combine("Backups", $"{gate.Name}", $"{DateTime.Now.ToString("dd-MM-yyyy_HHmm")}.conf");
 
                 string pattern = @"#conf_file_ver=(?<version>\d+)\s+#buildno=(?<build>\d+)";
-                var match = Regex.Match(createText, pattern);
+                var match = Regex.Match(createText ?? string.Empty, pattern);
 
                 if (match.Success)
                 {
                     if (match.Groups["version"].Value != gate.ConfVer || match.Groups["build"].Value != gate.BuildNo || settings.Force)
                     {
-                        await Logic.SaveFileAsync(path, createText);
+                        await Logic.SaveFileAsync(path, createText ?? string.Empty);
                         gate.ConfVer = match.Groups["version"].Value;
                         gate.BuildNo = match.Groups["build"].Value;
                         SqliteDataAccess.UpdateGate(gate);
@@ -53,7 +53,7 @@ namespace Fortigate.Backup.Cli.Commands
                 }
                 else
                 {
-                    await Logic.SaveFileAsync(path, createText);
+                    await Logic.SaveFileAsync(path, createText ?? string.Empty);
                     gate.ConfVer = match.Groups["version"].Value;
                     gate.BuildNo = match.Groups["build"].Value;
                     SqliteDataAccess.UpdateGate(gate);

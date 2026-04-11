@@ -44,7 +44,7 @@ namespace Fortigate.Backup.Core
             }
         }
 
-        public static GateModel LoadGateById(int id)
+        public static GateModel? LoadGateById(int id)
         {
             var connectionString = LoadConnectionString();
             using (IDbConnection cnn = new SQLiteConnection(connectionString))
