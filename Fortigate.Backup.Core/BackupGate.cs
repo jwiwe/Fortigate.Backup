@@ -11,26 +11,15 @@ namespace Fortigate.Backup.Core
                 ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
             };
 
-            using (var http = new HttpClient(handler))
-            {
-                http.DefaultRequestHeaders.Add("Authorization", $"Bearer {CryptoService.Decrypt(gate.Apikey ?? string.Empty)}");
+            using var http = new HttpClient(handler);
 
-                try
-                {
-                    var response = await http.GetAsync($"https://{gate.IpAddress}:{gate.Port}/api/v2/monitor/system/config/backup?scope=global");
+            http.DefaultRequestHeaders.Add("Authorization", $"Bearer {CryptoService.Decrypt(gate.Apikey ?? string.Empty)}");
 
-                    if (response != null && response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        return content;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return null;
-                }
-            }
-            return null;
+            var response = await http.GetAsync($"https://{gate.IpAddress}:{gate.Port}/api/v2/monitor/system/config/backup?scope=global");
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
         }
     }
 }
