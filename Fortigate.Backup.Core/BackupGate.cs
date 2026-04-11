@@ -15,7 +15,7 @@ namespace Fortigate.Backup.Core
 
             http.DefaultRequestHeaders.Add("Authorization", $"Bearer {CryptoService.Decrypt(gate.Apikey ?? string.Empty)}");
 
-            var response = await http.GetAsync($"https://{gate.IpAddress}:{gate.Port}/api/v2/monitor/system/config/backup?scope=global");
+            var response = await http.GetAsync($"https://{gate.Hostname}:{gate.Port}/api/v2/monitor/system/config/backup?scope=global");
 
             response.EnsureSuccessStatusCode();
 

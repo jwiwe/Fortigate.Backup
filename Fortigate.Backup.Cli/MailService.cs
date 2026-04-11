@@ -26,7 +26,7 @@ namespace Fortigate.Backup.Cli
 
                 // Build HTML email body
                 var sb = new StringBuilder();
-                sb.Append("<h2 style='font-family: Arial;'>Status på Fortigate Backup</h2>");
+                sb.Append("<h2 style='font-family: Arial;'>Status from Fortigate Backup</h2>");
                 sb.Append("<table border='1' cellpadding='8' style='border-collapse: collapse; font-family: Arial; width: 100%;'>");
                 sb.Append("<tr style='background-color: #333; color: white;'><th>Name</th><th>Hostname</th><th>Status</th><th>Message</th></tr>");
 
@@ -45,7 +45,7 @@ namespace Fortigate.Backup.Cli
                     sb.Append("</tr>");
                 }
                 sb.Append("</table>");
-                sb.Append("<p style='color: grey; font-size: 12px;'>Sendt automatisk af Fortigate Backup Tool</p>");
+                sb.Append("<p style='color: grey; font-size: 12px;'>Sent automatically by Fortigate Backup Tool</p>");
 
                 bodyBuilder.HtmlBody = sb.ToString();
                 message.Body = bodyBuilder.ToMessageBody();

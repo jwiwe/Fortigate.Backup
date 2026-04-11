@@ -17,8 +17,8 @@ namespace Fortigate.Backup.Cli
             string name = AnsiConsole.Prompt(
                 new TextPrompt<string>("Name:")
             );
-            string ipAddress = AnsiConsole.Prompt(
-                new TextPrompt<string>("IP Address:")
+            string hostname = AnsiConsole.Prompt(
+                new TextPrompt<string>("IP Address/Hostname:")
             );
             int port = AnsiConsole.Prompt(
                 new TextPrompt<int>("Port:")
@@ -31,15 +31,15 @@ namespace Fortigate.Backup.Cli
             var gate = new GateModel
             {
                 Name = name,
-                IpAddress = ipAddress,
+                Hostname = hostname,
                 Port = port,
                 Apikey = CryptoService.Encrypt(apikey)
             };
 
             SqliteDataAccess.SaveGate(gate);
 
-            AnsiConsole.MarkupLine($"Device added: [blue]{name}[/] with IP: [blue]{ipAddress}[/] on Port: [blue]{port}[/]");
-            Log.Information("Added new device: {Name} ({IpAddress}:{Port})", name, ipAddress, port);
+            AnsiConsole.MarkupLine($"Device added: [blue]{name}[/] with IP: [blue]{hostname}[/] on Port: [blue]{port}[/]");
+            Log.Information("Added new device: {Name} ({Hostname}:{Port})", name, hostname, port);
             return Task.FromResult(0);
         }
 
@@ -49,13 +49,13 @@ namespace Fortigate.Backup.Cli
             Table table = new Table();
             table.AddColumn("[bold]ID[/]");
             table.AddColumn("[bold]Name[/]");
-            table.AddColumn("[bold]IP Address[/]");
+            table.AddColumn("[bold]IP Address/Hostname[/]");
             table.AddColumn("[bold]Port[/]");
 
             var gates = SqliteDataAccess.LoadGates();
             foreach (var gate in gates)
             {
-                table.AddRow(gate.Id.ToString(), gate.Name ?? string.Empty, gate.IpAddress ?? string.Empty, gate.Port.ToString() ?? string.Empty);
+                table.AddRow(gate.Id.ToString(), gate.Name ?? string.Empty, gate.Hostname ?? string.Empty, gate.Port.ToString() ?? string.Empty);
             }
             AnsiConsole.Write(table);
             return Task.FromResult(0);
@@ -79,9 +79,9 @@ namespace Fortigate.Backup.Cli
                 new TextPrompt<string?>("Name:")
                 .DefaultValue(gate.Name)
             );
-            string? ipAddress = AnsiConsole.Prompt(
-                new TextPrompt<string?>("IP Address:")
-                .DefaultValue(gate.IpAddress)
+            string? hostname = AnsiConsole.Prompt(
+                new TextPrompt<string?>("IP Address/Hostname:")
+                .DefaultValue(gate.Hostname)
             );
             int? port = AnsiConsole.Prompt(
                 new TextPrompt<int?>("Port:")
@@ -94,12 +94,12 @@ namespace Fortigate.Backup.Cli
             );
 
             gate.Name = name;
-            gate.IpAddress = ipAddress;
+            gate.Hostname = hostname;
             gate.Port = port;
             if (apikey != null && apikey != "") gate.Apikey = CryptoService.Encrypt(apikey);
             SqliteDataAccess.UpdateGate(gate);
             AnsiConsole.MarkupLine($"\nDevice updated");
-            Log.Information("Updated device: {Name} ({IpAddress}:{Port})", gate.Name, gate.IpAddress, gate.Port);
+            Log.Information("Updated device: {Name} ({Hostname}:{Port})", gate.Name, gate.Hostname, gate.Port);
             return Task.FromResult(0);
         }
 
@@ -119,14 +119,14 @@ namespace Fortigate.Backup.Cli
 
             var selected = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
-                .Title($"Are you sure you want to delete this device '{gate.Name} ({gate.IpAddress})'?")
+                .Title($"Are you sure you want to delete this device '{gate.Name} ({gate.Hostname})'?")
                 .AddChoices(new[] { "No", "Yes" }));
 
             if (selected == "Yes")
             {
                 SqliteDataAccess.DeleteGate(gate.Id);
                 AnsiConsole.MarkupLine($"\nDevice deleted");
-                Log.Information("Deleted device: {Name} ({IpAddress}:{Port})", gate.Name, gate.IpAddress, gate.Port);
+                Log.Information("Deleted device: {Name} ({Hostname}:{Port})", gate.Name, gate.Hostname, gate.Port);
             }
             return Task.FromResult(0);
         }
@@ -141,7 +141,7 @@ namespace Fortigate.Backup.Cli
                 var gates = SqliteDataAccess.LoadGates();
                 foreach (var gate in gates)
                 {
-                    list.Add(gate.Id, $"{gate.Name} ({gate.IpAddress})");
+                    list.Add(gate.Id, $"{gate.Name} ({gate.Hostname})");
                 }
 
                 selected = AnsiConsole.Prompt(
@@ -164,21 +164,21 @@ namespace Fortigate.Backup.Cli
                 {
                     continue;
                 }
-                var result = new BackupResult { Name = gate.Name, Hostname = gate.IpAddress };
+                var result = new BackupResult { Name = gate.Name, Hostname = gate.Hostname };
                 try
                 {
                     string? content = null;
                     await AnsiConsole.Status()
                         .Spinner(Spinner.Known.Binary)
-                        .StartAsync($"Backing up device: {gate.Name ?? string.Empty} ({gate.IpAddress ?? string.Empty})...", async ctx =>
+                        .StartAsync($"Backing up device: {gate.Name ?? string.Empty} ({gate.Hostname ?? string.Empty})...", async ctx =>
                         {
                             content = await BackupGate.Backup(gate);
                         }
                     );
                     if (content == null)
                     {
-                        AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
-                        Log.Error("Unable to backup the device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                        AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.Hostname})[/]");
+                        Log.Error("Unable to backup the device: {Name} ({IpAddress})", gate.Name, gate.Hostname);
                         result.Success = false;
                         result.Message = "Unable to backup the device";
                         continue;
@@ -196,15 +196,15 @@ namespace Fortigate.Backup.Cli
                             gate.ConfVer = match.Groups["version"].Value;
                             gate.BuildNo = match.Groups["build"].Value;
                             SqliteDataAccess.UpdateGate(gate);
-                            AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
-                            Log.Information("Backuped up device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                            AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.Hostname})");
+                            Log.Information("Backuped up device: {Name} ({Hostname})", gate.Name, gate.Hostname);
                             result.Success = true;
                             result.Message = "Backup successful";
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.IpAddress}), skipping backup.[/]");
-                            Log.Information("No changes detected for device: {Name} ({IpAddress}), skipping backup.", gate.Name, gate.IpAddress);
+                            AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.Hostname}), skipping backup.[/]");
+                            Log.Information("No changes detected for device: {Name} ({Hostname}), skipping backup.", gate.Name, gate.Hostname);
                             result.Success = true;
                             result.Message = "No changes detected, backup skipped";
                         }
@@ -215,8 +215,8 @@ namespace Fortigate.Backup.Cli
                         gate.ConfVer = match.Groups["version"].Value;
                         gate.BuildNo = match.Groups["build"].Value;
                         SqliteDataAccess.UpdateGate(gate);
-                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
-                        Log.Information("Backuped up device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.Hostname})");
+                        Log.Information("Backuped up device: {Name} ({Hostname})", gate.Name, gate.Hostname);
                         result.Success = true;
                         result.Message = "Backup successful";
                     }
@@ -250,21 +250,21 @@ namespace Fortigate.Backup.Cli
             var gates = SqliteDataAccess.LoadGates();
             foreach (var gate in gates)
             {
-                var result = new BackupResult { Name = gate.Name, Hostname = gate.IpAddress };
+                var result = new BackupResult { Name = gate.Name, Hostname = gate.Hostname };
                 try
                 {
                     string? content = null;
                     await AnsiConsole.Status()
                         .Spinner(Spinner.Known.Binary)
-                        .StartAsync($"Backing up device: {gate.Name} ({gate.IpAddress})...", async ctx =>
+                        .StartAsync($"Backing up device: {gate.Name} ({gate.Hostname})...", async ctx =>
                         {
                             content = await BackupGate.Backup(gate);
                         }
                     );
                     if (content == null)
                     {
-                        AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.IpAddress})[/]");
-                        Log.Error("Unable to backup the device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                        AnsiConsole.MarkupLine($"[red]000000 Unable to backup the device: {gate.Name} ({gate.Hostname})[/]");
+                        Log.Error("Unable to backup the device: {Name} ({Hostname})", gate.Name, gate.Hostname);
                         result.Success = false;
                         result.Message = "Unable to backup the device";
                         continue;
@@ -282,15 +282,15 @@ namespace Fortigate.Backup.Cli
                             gate.ConfVer = match.Groups["version"].Value;
                             gate.BuildNo = match.Groups["build"].Value;
                             SqliteDataAccess.UpdateGate(gate);
-                            AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
-                            Log.Information("Backuped up device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                            AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.Hostname})");
+                            Log.Information("Backuped up device: {Name} ({Hostname})", gate.Name, gate.Hostname);
                             result.Success = true;
                             result.Message = "Backup successful";
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.IpAddress}), skipping backup.[/]");
-                            Log.Information("No changes detected for device: {Name} ({IpAddress}), skipping backup.", gate.Name, gate.IpAddress);
+                            AnsiConsole.MarkupLine($"[yellow]000000 No changes detected for device: {gate.Name} ({gate.Hostname}), skipping backup.[/]");
+                            Log.Information("No changes detected for device: {Name} ({Hostname}), skipping backup.", gate.Name, gate.Hostname);
                             result.Success = true;
                             result.Message = "No changes detected, backup skipped";
                         }
@@ -301,8 +301,8 @@ namespace Fortigate.Backup.Cli
                         gate.ConfVer = match.Groups["version"].Value;
                         gate.BuildNo = match.Groups["build"].Value;
                         SqliteDataAccess.UpdateGate(gate);
-                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.IpAddress})");
-                        Log.Information("Backuped up device: {Name} ({IpAddress})", gate.Name, gate.IpAddress);
+                        AnsiConsole.MarkupLine($"111111 Backuped up device: {gate.Name} ({gate.Hostname})");
+                        Log.Information("Backuped up device: {Name} ({Hostname})", gate.Name, gate.Hostname);
                         result.Success = true;
                         result.Message = "Backup successful";
                     }
@@ -344,7 +344,7 @@ namespace Fortigate.Backup.Cli
             list.Add(0, "[red]Exit[/]");
             foreach (var gate in gates)
             {
-                list.Add(gate.Id, $"{gate.Name} ({gate.IpAddress})");
+                list.Add(gate.Id, $"{gate.Name} ({gate.Hostname})");
             }
             list.Add(-1, "[red]Exit[/]");
 
