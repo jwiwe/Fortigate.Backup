@@ -17,7 +17,7 @@ namespace Fortigate.Backup.Cli
             if (!isImporting && !ValidateKey.EnsureKeyIsValid())
             {
                 AnsiConsole.MarkupLine("[red bold]!!! SECURITY ERROR !!![/]");
-                AnsiConsole.MarkupLine("[red]Krypteringsnøglen matcher ikke databasen.[/]");
+                AnsiConsole.MarkupLine("[red]The encryption key does not match the database.[/]");
                 return -1;
             }
 
