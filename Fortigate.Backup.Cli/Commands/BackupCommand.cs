@@ -10,10 +10,10 @@ namespace Fortigate.Backup.Cli.Commands
             int id = settings.Id ?? 0;
             if (id > 0)
             {
-                await Logic.HandleBackupCommand(id);
+                await Logic.HandleBackupCommand(id, true);
                 return 0;
             }
-            await Logic.HandleBackupAllCommand(settings.Force);
+            await Logic.HandleBackupAllCommand(settings.Force, true);
             return 0;
         }
     }
