@@ -24,6 +24,7 @@ When you run the application with no arguments, it starts in an interactive mode
 ### Commands
 
 * `backup` - Perform a backup of all FortiGates or a single FortiGate.
+* `cleanup` - Clean up the backup directories, keeping only a specific amount of files or days. Options: `--keep-count X`, `--keep-days X`
 * `export-key` - Export the local encryption key from the system. Securely store this to prevent data loss.
 * `import-key` - Import a previously exported encryption key to the system.
 

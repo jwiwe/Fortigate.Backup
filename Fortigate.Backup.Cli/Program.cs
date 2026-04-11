@@ -43,6 +43,7 @@ namespace Fortigate.Backup.Cli
                     config.AddCommand<ExportKeyCommand>("export-key").WithDescription("Export the encryption key from system.");
                     config.AddCommand<ImportKeyCommand>("import-key").WithDescription("Import an encryption key to system.");
                     config.AddCommand<BackupCommand>("backup").WithDescription("Perform a backup of all Fortigates or a single Fortigate.");
+                    config.AddCommand<CleanupCommand>("cleanup").WithDescription("Clean up the backup directories, keeping only a specific amount of files or days.");
                 });
 
                 return await app.RunAsync(args);

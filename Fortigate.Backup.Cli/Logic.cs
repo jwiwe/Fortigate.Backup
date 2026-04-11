@@ -1,4 +1,5 @@
-﻿using Fortigate.Backup.Cli.Models;
+﻿using Fortigate.Backup.Cli.Commands;
+using Fortigate.Backup.Cli.Models;
 using Fortigate.Backup.Core;
 using Fortigate.Backup.Core.Models;
 using Serilog;
@@ -355,6 +356,53 @@ namespace Fortigate.Backup.Cli
                     .PageSize(24));
 
             return selected;
+        }
+
+        public static Task<int> HandleCleanupCommand(CleanupSettings settings)
+        {
+            var backupDir = "Backups";
+            if (!Directory.Exists(backupDir))
+            {
+                AnsiConsole.MarkupLine("[yellow]No backups directory found.[/]");
+                return Task.FromResult(0);
+            }
+
+            var deviceDirs = Directory.GetDirectories(backupDir);
+            int totalDeleted = 0;
+
+            foreach (var devDir in deviceDirs)
+            {
+                var files = new DirectoryInfo(devDir).GetFiles("*.conf")
+                    .OrderByDescending(f => f.CreationTime)
+                    .ToList();
+
+                List<FileInfo> toDelete = new List<FileInfo>();
+
+                if (settings.KeepCount.HasValue)
+                {
+                    toDelete = files.Skip(settings.KeepCount.Value).ToList();
+                }
+                else if (settings.KeepDays.HasValue)
+                {
+                    var cutoffDate = DateTime.Now.AddDays(-settings.KeepDays.Value);
+                    toDelete = files.Where(f => f.CreationTime < cutoffDate).ToList();
+                }
+
+                foreach (var file in toDelete)
+                {
+                    file.Delete();
+                    Log.Information("Deleted old backup file: {FileName}", file.FullName);
+                }
+
+                if (toDelete.Count > 0)
+                {
+                    AnsiConsole.MarkupLine($"Cleaned up {toDelete.Count} files in [blue]{new DirectoryInfo(devDir).Name}[/]");
+                    totalDeleted += toDelete.Count;
+                }
+            }
+
+            AnsiConsole.MarkupLine($"[green]Cleanup complete. Removed a total of {totalDeleted} file(s).[/]");
+            return Task.FromResult(0);
         }
     }
 }
