@@ -14,6 +14,7 @@ It securely stores your device details (including API keys) using local encrypti
 
 ## Requirements
 - [.NET 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) or newer
+- A Fortigate REST API key with the `super_admin` access profile (required to download the full configuration backup).
 
 ## Usage
 
