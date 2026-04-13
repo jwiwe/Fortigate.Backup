@@ -54,7 +54,10 @@ Configure email notifications by modifying the `appsettings.json` file. Ensure `
     "Encryption": "Auto",
     "SenderName": "Fortigate Backup",
     "SenderEmail": "backup@domain.com",
-    "ReceiverEmail": "admin@domain.com",
+    "Receivers": [
+      "admin1@domain.com",
+      "admin2@domain.com"
+    ],
     "Username": "backup@domain.com",
     "Password": "YourPasswordHere"
   }

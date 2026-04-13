@@ -4,6 +4,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+using Serilog;
 using System.Text;
 
 namespace Fortigate.Backup.Cli
@@ -19,8 +20,24 @@ namespace Fortigate.Backup.Cli
             {
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(emailConfig["SenderName"], emailConfig["SenderEmail"]));
-                message.To.Add(new MailboxAddress("IT Admin", emailConfig["ReceiverEmail"]));
-                message.Subject = $"Fortigate Backup Rapport - {DateTime.Now:dd/MM/yyyy}";
+
+                var receivers = emailConfig.GetSection("Receivers").Get<List<string>>();
+
+                if (receivers != null && receivers.Any())
+                {
+                    foreach (var email in receivers)
+                    {
+                        message.To.Add(new MailboxAddress("", email.Trim()));
+                    }
+                }
+                else
+                {
+                    // Fallback if the array is empty (optional)
+                    Log.Warning("No recipients found in the configuration.");
+                    return;
+                }
+
+                message.Subject = $"Fortigate Backup Report - {DateTime.Now:dd/MM/yyyy}";
 
                 var bodyBuilder = new BodyBuilder();
 
