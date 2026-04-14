@@ -1,54 +1,164 @@
 # Fortigate Backup Tool
 
-This simple app makes it easy to perform backups of several Fortigate firewalls. It reads a list of Fortigates from a SQLite database file, performs a backup of each one and saves the backup file in a local directory.
-
-It securely stores your device details (including API keys) using local encryption, and allows you to easily perform on-demand or scheduled backups in an interactive CLI.
+Fortigate Backup Tool is a .NET CLI application for storing FortiGate devices locally and creating configuration backups on demand or as part of a scheduled task. Device API keys are encrypted before they are written to the local SQLite database.
 
 ## Features
 
-- **Interactive CLI:** Built with Spectre.Console for a beautiful, easy-to-use terminal interface.
-- **Secure Storage:** Device API keys are securely encrypted before being stored in a local SQLite database.
-- **Key Management:** Export and import encryption keys to safely move your configuration across systems or recover them.
-- **Manage Devices:** Add, list, edit, and delete multiple FortiGate devices from the internal database.
-- **Bulk or Single Backups:** Create configuration backups for all registered devices at once, or target specific firewalls.
-- **Email Notifications:** Optionally send an email report containing the results of the backup operation via SMTP.
+- **Interactive CLI:** Manage devices and run backups through a Spectre.Console menu.
+- **Command mode:** Run backups, cleanup, and key import/export directly from the command line.
+- **Secure local storage:** API keys are encrypted before being stored in SQLite.
+- **Key migration:** Export and import the encryption key when moving to another machine.
+- **Bulk or single-device backups:** Back up all devices or target a single device by ID.
+- **Optional email reports:** Send a summary email after backup runs.
 
 ## Requirements
+
 - [.NET 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) or newer
-- A Fortigate REST API key with the `super_admin` access profile (required to download the full configuration backup).
+- A FortiGate REST API key with the `super_admin` access profile
+
+## Quick start
+
+Build the solution:
+
+```powershell
+dotnet build .\Fortigate.Backup.slnx
+```
+
+Start the interactive menu:
+
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli
+```
+
+Run a backup from the command line:
+
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli -- backup
+```
+
+## How the project is organized
+
+| Project | Purpose |
+|---|---|
+| `Fortigate.Backup.Cli` | Interactive menu, CLI commands, backup orchestration, cleanup, and email reporting |
+| `Fortigate.Backup.Core` | SQLite access, configuration loading, encryption/key handling, and the FortiGate API call |
+
+## First run
+
+On first startup the application:
+
+1. Creates the SQLite database if it does not already exist
+2. Generates a local encryption key if one does not already exist
+3. Stores a validation value so future runs can verify that the key still matches the encrypted data
+
+If the key no longer matches the database, the application stops with a security error until the correct key is imported.
 
 ## Usage
 
-When you run the application with no arguments, it starts in an interactive mode allowing you to navigate through a menu to manage your devices.
+Running the application without arguments opens the interactive menu. This is the easiest way to add, edit, delete, and back up devices manually.
+
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli
+```
+
+### Interactive menu options
+
+- **List all Fortigates**
+- **Add a new Fortigate**
+- **Edit an existing Fortigate**
+- **Delete a Fortigate**
+- **Backup a Fortigate configuration**
+- **Backup all Fortigates in the database**
+- **Exit**
 
 ### Commands
 
-* `backup` - Perform a backup of all FortiGates or a single FortiGate.
-* `cleanup` - Clean up the backup directories, keeping only a specific amount of files or days. Options: `--keep-count X`, `--keep-days X`
-* `export-key` - Export the local encryption key from the system. Securely store this to prevent data loss.
-* `import-key` - Import a previously exported encryption key to the system.
+#### `backup`
 
-### Interactive Menu Options
+Back up all devices, or a single device by ID.
 
-* **Add a new Fortigate:** Prompts you for the Device Name, IP Address, Port, and REST API Key.
-* **List all Fortigates:** Displays a table showing the ID, Name, IP Address, and Port of all registered devices.
-* **Edit Fortigate:** Select an existing setup to quickly change its IP, port, or update its API key.
-* **Delete Fortigate:** Remove a device from your configuration.
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli -- backup
+dotnet run --project .\Fortigate.Backup.Cli -- backup --id 2
+dotnet run --project .\Fortigate.Backup.Cli -- backup --force
+```
 
-## Setup & Security
+Options:
 
-The application generates an encryption key upon first execution and stores it securely. This key ensures that your API keys saved in the local SQLite database cannot be accessed in plaintext.
+- `--id`, `-i`: Back up one device by database ID
+- `--force`, `-f`: Save a backup even if no configuration change is detected
 
-> **Important**: If you move the application to another machine, or reinstall your OS, you will lose access to the encrypted data unless you export your encryption key and import it on the new system using the `export-key` and `import-key` commands respectively.
+#### `cleanup`
 
-### Email Notifications
+Delete old backup files by count or age.
 
-Configure email notifications by modifying the `appsettings.json` file. Ensure `EnableEmailNotifications` is set to `true`:
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli -- cleanup --keep-count 10
+dotnet run --project .\Fortigate.Backup.Cli -- cleanup --keep-days 30
+```
+
+Options:
+
+- `--keep-count`, `-c`: Keep the newest `X` backup files per device
+- `--keep-days`, `-d`: Keep files from the last `X` days per device
+
+Only one cleanup option can be used at a time.
+
+#### `export-key`
+
+Export the local encryption key to a file protected with a password.
+
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli -- export-key --path .\backup-key.bin
+```
+
+Option:
+
+- `--path`, `-p`: Destination file path. If omitted, the app prompts for it.
+
+#### `import-key`
+
+Import a previously exported encryption key.
+
+```powershell
+dotnet run --project .\Fortigate.Backup.Cli -- import-key --path .\backup-key.bin
+```
+
+Option:
+
+- `--path`, `-p`: Source file path. If omitted, the app prompts for it.
+
+## Backup behavior
+
+Each backup uses the configured FortiGate hostname/IP address, port, and decrypted API key to request the configuration from:
+
+```text
+https://<hostname>:<port>/api/v2/monitor/system/config/backup?scope=global
+```
+
+Backups are written to:
+
+```text
+Backups\<DeviceName>\<dd-MM-yyyy_HHmm>.conf
+```
+
+The application stores the last seen `confVer` and `buildNo` for each device. If the downloaded config reports the same values as the last successful run, the backup is skipped unless `--force` is used.
+
+## Data and file locations
+
+- **Database:** `Fortigate.db`
+- **Application config:** `Fortigate.Backup.Core\appsettings.json`
+- **Backup files:** `Backups\<DeviceName>\`
+- **Logs:** `logs\backup-log-*.txt`
+
+## Email notifications
+
+Backup commands can send a report email when email notifications are enabled in `appsettings.json`.
 
 ```json
 {
   "EmailSettings": {
-    "EnableEmailNotifications": false,
+    "EnableEmailNotifications": true,
     "SmtpServer": "domain.com",
     "Port": 587,
     "Encryption": "Auto",
@@ -63,3 +173,23 @@ Configure email notifications by modifying the `appsettings.json` file. Ensure `
   }
 }
 ```
+
+`Encryption` supports `Auto`, `Ssl`, `Tls`, `StartTls`, and `None`.
+
+## Key management and migration
+
+The encryption key is created automatically and stored locally on the machine. If you move the database to another computer without also moving the key, existing API keys in the database cannot be decrypted.
+
+Recommended migration flow:
+
+1. Run `export-key` on the current machine and save the file securely
+2. Copy `Fortigate.db` to the new machine
+3. Run `import-key` on the new machine using the exported key file
+4. Start the application and verify that existing devices can be read normally
+
+## Security notes
+
+- API keys are encrypted before being stored in SQLite
+- On Windows, the master key is protected per user with DPAPI
+- On Linux, the master key is stored in the user's application data folder
+- The current HTTP backup implementation accepts any TLS certificate presented by the FortiGate device. This is convenient for self-signed certificates, but it also means certificate trust is not being validated
